@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # coding: utf-8
 import argparse
 
@@ -6,11 +5,11 @@ import datetime
 import calendar
 import time
 import json
-import os
 import pyproj
 import subprocess
 
-from gpx import parse_gpx
+
+from .gpx import parse_gpx
 
 
 def get_photo_local_timestamp(filename):
@@ -90,6 +89,14 @@ def calculate_offset(camera_time_zone_hours, camera_minus_gps_seconds):
 
 
 def georefence_images_from_exif(images, tracks, time_offset):
+    """
+    :param images: list of file names
+    :param tracks: list of gpx files
+    :param time_offset: GPS time (UTC) - camera time (local), in seconds, combined from time zone and camera clock skew
+    :return: list of dicts with keys: lat, lon, heading, track_points_dist, track_points_time_delta
+        track_points_dist - distance between track points prior and after the photo
+        track_points_time_delta - time between track points prior and after the photo
+    """
     referencer = GeoReferencer(tracks)
     positions = {}
     for filename in images:
@@ -107,8 +114,9 @@ def main():
     parser.add_argument('-o', '--offset', default=0, type=int, help='GPS time - camera time, in seconds')
     conf = parser.parse_args()
 
-    for k, v in georefence_images_from_exif(conf.images, conf.tracks, calculate_offset(conf.timezone, conf.offset)).items():
-        print(k, v)
+    refs = georefence_images_from_exif(conf.images, conf.tracks, calculate_offset(conf.timezone, conf.offset))
+    print(json.dumps(refs, indent=2))
+
 
 if __name__ == '__main__':
     main()
