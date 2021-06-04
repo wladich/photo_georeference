@@ -37,7 +37,7 @@ def parse_gpx(fp):
                     lon = float(trkpt.getAttribute('lon'))
                     time_ = trkpt.getElementsByTagName('time')
                     if not time_:
-                        raise Exception('No time in track point (track #%s, segment #%s, point #%s), skipping segment'
+                        raise Exception('No time in track point (track #%s, segment #%s, point #%s)'
                                         % (trk_i, seg_i, pt_i))
                     time_ = time_[0].childNodes[0].data
                     timestamp = parse_time(time_)
