@@ -30,19 +30,20 @@ def interpolate_latlon(timestamp, p1, p2):
     return lat, lon
 
 
+def load_tracks_flatten_segments(filenames):
+    segments = []
+    for fn in filenames:
+        with open(fn) as f:
+            segments.extend(seg for seg in parse_gpx(f) if len(seg) > 1)
+    segments.sort(key=lambda seg: seg[0][2])
+    return segments
+
+
 class GeoReferencer:
     def __init__(self, track_files):
-        self.segments = []
-        self.load_tracks(track_files)
+        self.segments = load_tracks_flatten_segments(track_files)
         self.add_virtual_segments()
         self.geod = pyproj.Geod(ellps='WGS84')
-
-    def load_tracks(self, filenames):
-        for fn in filenames:
-            with open(fn) as f:
-                segments = parse_gpx(f)
-            self.segments += [seg for seg in segments if len(seg) > 1]
-        self.segments.sort(key=lambda seg: seg[0][2])
 
     def add_virtual_segments(self):
         for i in range(len(self.segments) - 1):
