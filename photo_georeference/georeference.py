@@ -40,6 +40,9 @@ def load_tracks_flatten_segments(filenames):
 
 
 class GeoReferencer:
+    heading_smoothing_target_distance = 4
+    heading_smoothing_max_time_delta = 10
+
     def __init__(self, track_files):
         self.segments = load_tracks_flatten_segments(track_files)
         self.add_virtual_segments()
@@ -53,6 +56,26 @@ class GeoReferencer:
             p2 = next_seg[0]
             if p2[2] > p1[2]:
                 self.segments.append([seg[-1], next_seg[0]])
+
+    def calculate_heading(self, lat, lon, timestamp, segment, ind):
+        def is_point_in_range(ind):
+            p = segment[ind]
+            time_delta = abs(timestamp - p[2])
+            if time_delta > self.heading_smoothing_max_time_delta:
+                return False
+            _, _, dist = self.geod.inv(lon, lat, p[1], p[0])
+            return dist < self.heading_smoothing_target_distance
+
+        ind2 = ind + 1
+
+        while ind > 0 and is_point_in_range(ind):
+            ind -= 1
+        while ind2 < len(segment) - 1 and is_point_in_range(ind2):
+            ind2 += 1
+        p1 = segment[ind]
+        p2 = segment[ind2]
+        heading, _, _ = self.geod.inv(p1[1], p1[0], p2[1], p2[0])
+        return heading
 
     def get_position_from_timestamp(self, timestamp, time_offset):
         timestamp += time_offset
@@ -69,14 +92,15 @@ class GeoReferencer:
                 p1 = segment_for_point[i]
                 p2 = segment_for_point[i + 1]
                 if p1[2] <= timestamp <= p2[2]:
-                    az, _, track_points_dist = self.geod.inv(p1[1], p1[0], p2[1], p2[0])
+                    _, _, track_points_dist = self.geod.inv(p1[1], p1[0], p2[1], p2[0])
                     track_points_time_delta = p2[2] - p1[2]
                     position['track_points_dist'] = track_points_dist
                     position['track_points_time_delta'] = track_points_time_delta
                     lat, lon = interpolate_latlon(timestamp, p1, p2)
+                    heading = self.calculate_heading(lat, lon, timestamp, segment_for_point, i)
                     position['lat'] = lat
                     position['lon'] = lon
-                    position['heading'] = az
+                    position['heading'] = heading
                     break
         return position
 
