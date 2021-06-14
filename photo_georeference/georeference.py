@@ -105,10 +105,6 @@ class GeoReferencer:
         return position
 
 
-def get_default_timezone():
-    return -time.timezone / 3600
-
-
 def calculate_offset(camera_time_zone_hours, camera_minus_gps_seconds):
     return -camera_time_zone_hours * 3600 + camera_minus_gps_seconds
 
@@ -131,11 +127,10 @@ def georefence_images_from_exif(images, tracks, time_offset):
 
 
 def main():
-    default_timezone = get_default_timezone()
     parser = argparse.ArgumentParser()
     parser.add_argument('--images', nargs='+', required=True)
     parser.add_argument('--tracks', nargs='+', required=True)
-    parser.add_argument('-z', '--timezone', default=default_timezone, type=float, help='default=%s' % default_timezone)
+    parser.add_argument('-z', '--timezone',required=True, type=float, help='Time offset from UTC in hours')
     parser.add_argument('-o', '--offset', default=0, type=int, help='GPS time - camera time, in seconds')
     conf = parser.parse_args()
 
