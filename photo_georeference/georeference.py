@@ -130,7 +130,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--images', nargs='+', required=True)
     parser.add_argument('--tracks', nargs='+', required=True)
-    parser.add_argument('-z', '--timezone',required=True, type=float, help='Time offset from UTC in hours')
+    parser.add_argument('-z', '--timezone', required=True, type=float, help='Time offset from UTC in hours')
     parser.add_argument('-o', '--offset', default=0, type=int, help='GPS time - camera time, in seconds')
     conf = parser.parse_args()
 
