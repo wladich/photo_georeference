@@ -1,15 +1,20 @@
 # coding: utf-8
 import argparse
-
 import datetime
 import calendar
-import time
 import json
-import pyproj
 import subprocess
+from dataclasses import dataclass
 
+import pyproj
 
 from .gpx import parse_gpx
+
+
+@dataclass
+class Segment:
+    track_names: list
+    points: list
 
 
 def get_photo_local_timestamp(filename):
@@ -34,8 +39,10 @@ def load_tracks_flatten_segments(filenames):
     segments = []
     for fn in filenames:
         with open(fn) as f:
-            segments.extend(seg for seg in parse_gpx(f) if len(seg) > 1)
-    segments.sort(key=lambda seg: seg[0][2])
+            for track_seg in parse_gpx(f):
+                if len(track_seg) > 1:
+                    segments.append(Segment([fn], track_seg))
+    segments.sort(key=lambda seg: seg.points[0][2])
     return segments
 
 
@@ -52,14 +59,16 @@ class GeoReferencer:
         for i in range(len(self.segments) - 1):
             seg = self.segments[i]
             next_seg = self.segments[i + 1]
-            p1 = seg[-1]
-            p2 = next_seg[0]
+            p1 = seg.points[-1]
+            p2 = next_seg.points[0]
             if p2[2] > p1[2]:
-                self.segments.append([seg[-1], next_seg[0]])
+                self.segments.append(Segment(seg.track_names + next_seg.track_names, [p1, p2]))
 
-    def calculate_heading(self, lat, lon, timestamp, segment, ind):
+    def calculate_heading(self, lat: float, lon: float, timestamp: int, segment: Segment, ind: int):
+        segment_points = segment.points
+
         def is_point_in_range(ind):
-            p = segment[ind]
+            p = segment_points[ind]
             time_delta = abs(timestamp - p[2])
             if time_delta > self.heading_smoothing_max_time_delta:
                 return False
@@ -70,10 +79,10 @@ class GeoReferencer:
 
         while ind > 0 and is_point_in_range(ind):
             ind -= 1
-        while ind2 < len(segment) - 1 and is_point_in_range(ind2):
+        while ind2 < len(segment.points) - 1 and is_point_in_range(ind2):
             ind2 += 1
-        p1 = segment[ind]
-        p2 = segment[ind2]
+        p1 = segment_points[ind]
+        p2 = segment_points[ind2]
         heading, _, _ = self.geod.inv(p1[1], p1[0], p2[1], p2[0])
         return heading
 
@@ -84,13 +93,13 @@ class GeoReferencer:
         }
         segment_for_point = None
         for segment in self.segments:
-            if segment[0][2] <= timestamp <= segment[-1][2]:
+            if segment.points[0][2] <= timestamp <= segment.points[-1][2]:
                 segment_for_point = segment
                 break
         if segment_for_point:
-            for i in range(len(segment_for_point) - 1):
-                p1 = segment_for_point[i]
-                p2 = segment_for_point[i + 1]
+            for i in range(len(segment_for_point.points) - 1):
+                p1 = segment_for_point.points[i]
+                p2 = segment_for_point.points[i + 1]
                 if p1[2] <= timestamp <= p2[2]:
                     _, _, track_points_dist = self.geod.inv(p1[1], p1[0], p2[1], p2[0])
                     track_points_time_delta = p2[2] - p1[2]
@@ -101,6 +110,7 @@ class GeoReferencer:
                     position['lat'] = lat
                     position['lon'] = lon
                     position['heading'] = heading
+                    position['sources'] = segment_for_point.track_names
                     break
         return position
 
