@@ -1,0 +1,22 @@
+[MASTER]
+jobs=0
+ignore=sunposition.py
+extension-pkg-whitelist=PyQt5
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=120
+
+[MESSAGES CONTROL]
+disable=missing-function-docstring,
+    missing-module-docstring,
+    no-self-use,
+    missing-class-docstring,
+    bad-continuation,
+    invalid-name,
+    too-many-instance-attributes,
+    too-many-public-methods,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-locals,
+    too-many-return-statements
