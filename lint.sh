@@ -11,5 +11,7 @@ echo 'Black...'
 black --diff --check -q .
 echo 'flake8...'
 flake8
+echo 'mypy...'
+mypy
 
 echo All checks passed.
