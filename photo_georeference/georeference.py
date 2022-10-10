@@ -182,6 +182,14 @@ def georefence_images_from_exif(
     return positions
 
 
+# pylint: disable-next=too-few-public-methods
+class Args(argparse.Namespace):
+    images: list[str]
+    tracks: list[str]
+    timezone: float
+    offset: int
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--images", nargs="+", required=True)
@@ -196,14 +204,9 @@ def main() -> None:
     parser.add_argument(
         "-o", "--offset", default=0, type=int, help="GPS time - camera time, in seconds"
     )
-    conf = parser.parse_args()
-
-    images: list[str] = conf.images
-    tracks: list[str] = conf.tracks
-    timezone: float = conf.timezone
-    offset: int = conf.offset
+    conf = parser.parse_args(namespace=Args())
     refs = georefence_images_from_exif(
-        images, tracks, calculate_offset(timezone, offset)
+        conf.images, conf.tracks, calculate_offset(conf.timezone, conf.offset)
     )
     print(json.dumps(refs, indent=2))
 
