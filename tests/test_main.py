@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from photo_georeference import georeference
+from photo_georeference.georeference import (
+    GeoReferencer,
+    calculate_offset,
+    get_photo_local_timestamp,
+    interpolate_latlon,
+)
+from photo_georeference.gpx import LatLonTime
 
 
 @pytest.fixture(name="jpg_filename")
@@ -37,15 +43,15 @@ def fixture_tracks() -> list[str]:
 def test_calculate_offset(
     zone_offset: float, camera_offset: int, expected: float
 ) -> None:
-    assert georeference.calculate_offset(zone_offset, camera_offset) == expected
+    assert calculate_offset(zone_offset, camera_offset) == expected
 
 
 def test_get_photo_local_timestamp(jpg_filename: str) -> None:
-    assert georeference.get_photo_local_timestamp(jpg_filename) == 1635693474
+    assert get_photo_local_timestamp(jpg_filename) == 1635693474
 
 
 def test_georeference_precise(tracks: list[str]) -> None:
-    referencer = georeference.GeoReferencer(tracks)
+    referencer = GeoReferencer(tracks)
     assert referencer.get_position_from_timestamp(1635693474, -3600) == {
         "heading": -135.84117399896272,
         "lat": 49.223688785,
@@ -58,14 +64,14 @@ def test_georeference_precise(tracks: list[str]) -> None:
 
 
 def test_georefercne_missing(tracks: list[str]) -> None:
-    referencer = georeference.GeoReferencer(tracks)
+    referencer = GeoReferencer(tracks)
     assert referencer.get_position_from_timestamp(1635693474, 0) == {
         "timestamp": 1635693474
     }
 
 
 def test_georefercne_approx(tracks: list[str]) -> None:
-    referencer = georeference.GeoReferencer(tracks)
+    referencer = GeoReferencer(tracks)
     assert referencer.get_position_from_timestamp(1635681600, 0) == {
         "heading": 100.61736534330599,
         "lat": 49.230591764502385,
@@ -75,3 +81,22 @@ def test_georefercne_approx(tracks: list[str]) -> None:
         "track_points_dist": 201850.08802551116,
         "track_points_time_delta": 610634.0,
     }
+
+
+@pytest.mark.parametrize(
+    "timestamp,point1,point2,expected",
+    [
+        (10, LatLonTime(110, 330, 10), LatLonTime(140, 390, 40), (110, 330)),
+        (40, LatLonTime(110, 330, 10), LatLonTime(140, 390, 40), (140, 390)),
+        (20, LatLonTime(110, 330, 10), LatLonTime(140, 390, 40), (120, 350)),
+        (30, LatLonTime(110, 330, 10), LatLonTime(140, 390, 40), (130, 370)),
+        (30, LatLonTime(110, 330, 30), LatLonTime(140, 390, 40), (110, 330)),
+    ],
+)
+def test_interpolation(
+    timestamp: int,
+    point1: LatLonTime,
+    point2: LatLonTime,
+    expected: tuple[float, float],
+) -> None:
+    assert interpolate_latlon(timestamp, point1, point2) == expected
