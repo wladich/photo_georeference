@@ -4,6 +4,7 @@
 ; So using 88 + 10% = 97 and not installing Bugbear
 max-line-length = 97
 import-order-style=pycharm
+application_import_names = photo_georeference
 ; Do not check files:
 ; exclude =
 ; top level package name to allow absolute imports

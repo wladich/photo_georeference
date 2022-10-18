@@ -6,7 +6,7 @@ BASE="$(dirname $0)"
 cd "$BASE"
 
 echo 'pylint...'
-pylint ./*.py photo_georeference
+pylint ./*.py photo_georeference tests/*.py
 echo 'Black...'
 black --diff --check -q .
 echo 'flake8...'
